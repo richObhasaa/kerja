@@ -19,8 +19,7 @@ lib/
   pipeline/   daily_pipeline, scheduler (WorkManager), notifier
   ui/         dashboard, detail, apply (WebView), settings
 assets/prompts/   template prompt Gemini
-src/    Versi TypeScript asli dari core AI (referensi port, lihat catatan di bawah)
-test/   104 unit/integration test
+test/   119 unit/integration test
 ```
 
 Dokumentasi backend ada di [`gas/README.md`](gas/README.md) — skema sheet, langkah deploy,
@@ -114,12 +113,11 @@ dan dicoba lagi. Yang di luar batas harian juga dibiarkan tidak tersimpan.
 `CvReader` mendeteksi PDF tanpa lapisan teks dan menolaknya dengan pesan jelas, alih-alih
 mengirim string kosong yang membuat Gemini memberi skor 0 tanpa penjelasan.
 
-## Catatan soal `src/`
+## Asal-usul lapisan AI
 
-`src/types.ts` dan `src/prompt.ts` adalah versi TypeScript dari lapisan AI yang sudah
-diporting ke `lib/core/`. Keduanya **tidak dipakai saat runtime** — Node tidak tersedia
-di Android. File itu dipertahankan sementara sebagai acuan tes golden; setelah port
-dianggap stabil, keduanya bisa dihapus.
+Lapisan AI awalnya ditulis dalam TypeScript (`src/types.ts`, `src/prompt.ts`) lalu
+diporting penuh ke `lib/core/`. Kode TypeScript itu sudah dihapus dari repo; perilakunya
+terjaga oleh `test/fixtures/prompt_golden.txt` — output asli versi TS — yang terus
+dipastikan byte-identik dengan output Dart oleh `test/prompt_test.dart`.
 
-`templates/career_intelligence_engine.txt` kini hidup di `assets/prompts/` (isinya
-identik) karena Flutter memuatnya sebagai asset.
+Template prompt hidup di `assets/prompts/` karena Flutter memuatnya sebagai asset.
