@@ -68,9 +68,50 @@ void main() {
       expect(captured.url.host, 'jsearch.p.rapidapi.com');
       expect(captured.url.path, '/search-v2');
       expect(captured.url.queryParameters['query'], 'Cybersecurity Intern Indonesia');
-      expect(captured.url.queryParameters['date_posted'], '3days');
+      expect(captured.url.queryParameters['date_posted'], 'month');
       expect(captured.headers['X-RapidAPI-Key'], 'rapid-key');
       expect(captured.headers['X-RapidAPI-Host'], 'jsearch.p.rapidapi.com');
+    });
+
+    test('nama field alternatif dari provider tetap terbaca', () async {
+      final client = MockClient((request) async => _json({
+            'status': 'OK',
+            'data': [
+              {
+                'title': 'Data Intern',
+                'company': 'Startup',
+                'location': 'Bandung',
+                'description': 'Desc.',
+                'apply_link': 'https://x/alt',
+              }
+            ]
+          }));
+
+      final source = JSearchSource(apiKey: 'k', httpClient: client);
+      final job = (await source.search(query: 'q')).single;
+
+      expect(job.title, 'Data Intern');
+      expect(job.company, 'Startup');
+      expect(job.location, 'Bandung');
+      expect(job.jobUrl, 'https://x/alt');
+    });
+
+    test('item tanpa field URL menjadi error terang, bukan nol sunyi', () async {
+      final client = MockClient((request) async => _json({
+            'status': 'OK',
+            'data': [
+              {'job_title': 'A'},
+              {'job_title': 'B'},
+            ]
+          }));
+
+      final source = JSearchSource(apiKey: 'k', httpClient: client);
+
+      await expectLater(
+        source.search(query: 'q'),
+        throwsA(isA<JobSourceException>()
+            .having((e) => e.message, 'message', contains('field URL'))),
+      );
     });
 
     test('membuang entri tanpa job_apply_link', () async {

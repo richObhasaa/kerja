@@ -103,7 +103,7 @@ class JSearchSource implements JobSource {
   JSearchSource({
     required String apiKey,
     http.Client? httpClient,
-    this.datePosted = '3days',
+    this.datePosted = 'month',
     this.timeout = const Duration(seconds: 45),
   })  : _apiKey = apiKey.trim(),
         _client = httpClient ?? http.Client() {
@@ -120,7 +120,9 @@ class JSearchSource implements JobSource {
   final String _apiKey;
   final http.Client _client;
 
-  /// `all`, `today`, `3days`, `week`, `month`.
+  /// `all`, `today`, `3days`, `week`, `month`. Default lebar karena jendela
+  /// sempit untuk query magang Indonesia sering benar-benar kosong, dan
+  /// pengulangan tidak berbahaya — GAS membuang URL yang sudah tercatat.
   final String datePosted;
   final Duration timeout;
 
@@ -151,21 +153,42 @@ class JSearchSource implements JobSource {
     if (data is! List) return const [];
 
     final jobs = data.whereType<Map<String, dynamic>>().map((item) {
-      final city = (item['job_city'] ?? '').toString().trim();
-      final country = (item['job_country'] ?? '').toString().trim();
-      final location = [city, country].where((p) => p.isNotEmpty).join(', ');
+      final city = _first(item, ['job_city', 'city']);
+      final country = _first(item, ['job_country', 'country']);
+      final fromParts = [city, country].where((p) => p.isNotEmpty).join(', ');
 
       return JobPosting(
-        title: (item['job_title'] ?? '').toString().trim(),
-        company: (item['employer_name'] ?? item['job_publisher'] ?? '').toString().trim(),
-        location: location,
-        description: (item['job_description'] ?? '').toString().trim(),
-        jobUrl: (item['job_apply_link'] ?? '').toString().trim(),
+        title: _first(item, ['job_title', 'title']),
+        company: _first(item, ['employer_name', 'company', 'job_publisher']),
+        location: fromParts.isNotEmpty ? fromParts : _first(item, ['location']),
+        description: _first(item, ['job_description', 'description']),
+        jobUrl: _first(item, ['job_apply_link', 'apply_link', 'url']),
         source: name,
       );
     }).toList();
 
-    return _dropWithoutUrl(jobs).take(limit).toList(growable: false);
+    final kept = _dropWithoutUrl(jobs).take(limit).toList(growable: false);
+
+    // Item masuk tapi tak satu pun punya URL = provider mengganti nama field.
+    // Lebih baik jadi error terang daripada nol yang tidak bisa dijelaskan.
+    if (kept.isEmpty && jobs.isNotEmpty) {
+      throw JobSourceException(
+        name,
+        'JSearch mengirim ${jobs.length} item tanpa field URL yang dikenali '
+        '(job_apply_link/apply_link/url). Kemungkinan provider mengubah skema respons.',
+      );
+    }
+    return kept;
+  }
+
+  /// Mengambil nilai pertama yang tidak kosong dari beberapa nama field.
+  static String _first(Map<String, dynamic> item, List<String> keys) {
+    for (final key in keys) {
+      final value = item[key];
+      final text = value?.toString().trim() ?? '';
+      if (text.isNotEmpty) return text;
+    }
+    return '';
   }
 
   Future<http.Response> _get(Uri uri) async {
