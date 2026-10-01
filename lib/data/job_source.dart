@@ -126,7 +126,10 @@ class JSearchSource implements JobSource {
 
   @override
   Future<List<JobPosting>> search({required String query, int limit = 25}) async {
-    final uri = Uri.https(_host, '/search', {
+    // Route "Job Search" pada JSearch v5 adalah /search-v2. Path /search lama
+    // sudah dihapus sisi provider dan dibalas "Endpoint '/search' does not
+    // exist" — persis error yang muncul di perangkat pengguna.
+    final uri = Uri.https(_host, '/search-v2', {
       'query': query,
       'page': '1',
       'num_pages': '1',
@@ -139,7 +142,8 @@ class JSearchSource implements JobSource {
     if (status.toUpperCase() != 'OK') {
       throw JobSourceException(
         name,
-        'JSearch membalas status "$status": ${(body['message'] ?? '').toString()}',
+        'JSearch membalas status "$status" (HTTP ${response.statusCode}): '
+        '${(body['message'] ?? '').toString()}',
       );
     }
 

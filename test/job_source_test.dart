@@ -66,7 +66,7 @@ void main() {
       expect(jobs.single.source, 'JSearch');
 
       expect(captured.url.host, 'jsearch.p.rapidapi.com');
-      expect(captured.url.path, '/search');
+      expect(captured.url.path, '/search-v2');
       expect(captured.url.queryParameters['query'], 'Cybersecurity Intern Indonesia');
       expect(captured.url.queryParameters['date_posted'], '3days');
       expect(captured.headers['X-RapidAPI-Key'], 'rapid-key');
